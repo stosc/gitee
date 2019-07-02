@@ -10,6 +10,7 @@
     "SCM Providers"
   ],
   "activationEvents": [
+    "onView:myGitee",
     "onCommand:extension.helloWorld"
   ],
   "main": "./out/extension.js",
@@ -17,32 +18,23 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "package-explorer",
-          "title": "Package Explorer",
-          "icon": "media/dep.svg"
+          "id": "gitee-explorer",
+          "title": "Gitee Explorer",
+          "icon": "media/gitee-logo.svg"
         }
       ]
     },
     "views": {
-      "package-explorer": [
+      "gitee-explorer": [
         {
-          "id": "nodeDependencies",
-          "name": "Node Dependencies"
+          "id": "myGitee",
+          "name": "我的Gitee"
         }
       ],
       "explorer": [
         {
-          "id": "jsonOutline",
-          "name": "Json Outline",
-          "when": "jsonOutlineEnabled"
-        },
-        {
           "id": "ftpExplorer",
           "name": "FTP Explorer"
-        },
-        {
-          "id": "fileExplorer",
-          "name": "File Explorer"
         },
         {
           "id": "testView",
@@ -53,10 +45,10 @@
     "commands": [
       {
         "command": "nodeDependencies.refreshEntry",
-        "title": "Refresh",
+        "title": "login",
         "icon": {
-          "light": "resources/light/refresh.svg",
-          "dark": "resources/dark/refresh.svg"
+          "light": "resources/light/login.svg",
+          "dark": "resources/dark/login.svg"
         }
       },
       {
@@ -137,12 +129,12 @@
       "view/title": [
         {
           "command": "nodeDependencies.refreshEntry",
-          "when": "view == nodeDependencies",
+          "when": "view == myGitee",
           "group": "navigation"
         },
         {
           "command": "nodeDependencies.addEntry",
-          "when": "view == nodeDependencies"
+          "when": "view == myGitee"
         },
         {
           "command": "jsonOutline.refresh",

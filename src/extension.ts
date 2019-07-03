@@ -2,16 +2,20 @@
 import * as vscode from "vscode";
 
 import { JsonOutlineProvider } from "./jsonOutline";
-import { GiteeReopProvider, GiteeReop } from "./gitee";
+import { GiteeReopProvider, GiteeReop,GiteeCmd } from "./gitee";
 
 export function activate(context: vscode.ExtensionContext) {
   //gitee
+  const giteeCmd = new GiteeCmd();
   const giteeReopProvider = new GiteeReopProvider(vscode.workspace.rootPath);
   vscode.window.registerTreeDataProvider("giteeReops", giteeReopProvider);
   //gitee command
-  vscode.commands.registerCommand("gitee.login", () =>
-  vscode.window.showInformationMessage(`Successfully called login gitee.`)
-);
+  vscode.commands.registerCommand("gitee.login", () =>{
+    vscode.window.showInformationMessage(`Successfully called login gitee.`);
+    giteeCmd.loginGitee();
+  }
+    
+  );
 
 
 

@@ -71,3 +71,5 @@ Added features X, Y, and Z.
 [svg 图片编辑](https://c.runoob.com/more/svgeditor/#ungroup)
 
 [svg 图标](https://www.flaticon.com/search?word=login)
+
+[插件开发文档](https://liiked.github.io/VS-Code-Extension-Doc-ZH/#/extensibility-reference/contribution-points?id=contributesmenus)

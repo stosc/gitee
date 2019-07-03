@@ -193,10 +193,20 @@
     "test": "yarn run compile && node ./node_modules/vscode/bin/test"
   },
   "devDependencies": {
-    "typescript": "^3.3.1",
-    "vscode": "^1.1.28",
+    "@types/mkdirp": "^0.5.2",
+    "@types/node": "*",
+    "@types/rimraf": "^2.0.2",
     "tslint": "^5.12.1",
-    "@types/node": "^10.12.21",
-    "@types/mocha": "^2.2.42"
+    "typescript": "^3.3.1",
+    "vscode": "^1.1.28"
+  },
+  "dependencies": {
+    "axios": "^0.19.0",
+    "fs": "^0.0.1-security",
+    "ftp": "^0.3.10",
+    "jsonc-parser": "^0.4.2",
+    "mkdirp": "^0.5.1",
+    "path": "^0.12.7",
+    "rimraf": "^2.6.2"
   }
 }

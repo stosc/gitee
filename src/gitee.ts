@@ -1,6 +1,9 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
+import * as axios from "axios";
+
+
 
 export class GiteeReopProvider implements vscode.TreeDataProvider<GiteeReop> {
   private _onDidChangeTreeData: vscode.EventEmitter<
@@ -144,4 +147,11 @@ export class GiteeReop extends vscode.TreeItem {
   };
 
   contextValue = "dependency";
+}
+
+
+export class GiteeCmd{
+  loginGitee():void{
+    vscode.window.showInformationMessage(`Successfully called loginGitee function currnt path is ${vscode.workspace.rootPath}.`);
+  }
 }

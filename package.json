@@ -31,7 +31,7 @@
           "name": "我的Gitee"
         }
       ],
-      "explorer": [
+      "scm": [
         {
           "id": "ftpExplorer",
           "name": "FTP Explorer"
@@ -44,7 +44,7 @@
     },
     "commands": [
       {
-        "command": "nodeDependencies.refreshEntry",
+        "command": "gitee.login",
         "title": "login",
         "icon": {
           "light": "resources/light/login.svg",
@@ -128,7 +128,7 @@
       ],
       "view/title": [
         {
-          "command": "nodeDependencies.refreshEntry",
+          "command": "gitee.login",
           "when": "view == myGitee",
           "group": "navigation"
         },

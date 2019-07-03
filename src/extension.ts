@@ -1,5 +1,4 @@
 "use strict";
-
 import * as vscode from "vscode";
 
 import { JsonOutlineProvider } from "./jsonOutline";
@@ -9,6 +8,13 @@ export function activate(context: vscode.ExtensionContext) {
   //gitee
   const giteeReopProvider = new GiteeReopProvider(vscode.workspace.rootPath);
   vscode.window.registerTreeDataProvider("giteeReops", giteeReopProvider);
+  //gitee command
+  vscode.commands.registerCommand("gitee.login", () =>
+  vscode.window.showInformationMessage(`Successfully called login gitee.`)
+);
+
+
+
   vscode.commands.registerCommand("nodeDependencies.refreshEntry", () =>
     giteeReopProvider.refresh()
   );

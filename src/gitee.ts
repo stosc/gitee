@@ -6,11 +6,8 @@ import * as axios from "axios";
 
 
 export class GiteeReopProvider implements vscode.TreeDataProvider<GiteeReop> {
-  private _onDidChangeTreeData: vscode.EventEmitter<
-    GiteeReop | undefined
-  > = new vscode.EventEmitter<GiteeReop | undefined>();
-  readonly onDidChangeTreeData: vscode.Event<GiteeReop | undefined> = this
-    ._onDidChangeTreeData.event;
+  private _onDidChangeTreeData: vscode.EventEmitter<GiteeReop | undefined> = new vscode.EventEmitter<GiteeReop | undefined>();
+  readonly onDidChangeTreeData: vscode.Event<GiteeReop | undefined> = this._onDidChangeTreeData.event;
 
   constructor(private workspaceRoot: string | undefined) {}
 
@@ -60,7 +57,7 @@ export class GiteeReopProvider implements vscode.TreeDataProvider<GiteeReop> {
       const toDep = (moduleName: string, version: string): GiteeReop => {
         if (
           this.pathExists(
-            path.join(this.workspaceRoot, "node_modules", moduleName)
+            path.join(this.workspaceRoot?this.workspaceRoot:'', "node_modules", moduleName)
           )
         ) {
           return new GiteeReop(
@@ -151,7 +148,41 @@ export class GiteeReop extends vscode.TreeItem {
 
 
 export class GiteeCmd{
-  loginGitee():void{
+  giteeId:string = '';
+  giteePwd:string = '';
+  giteeToken:string = '';
+
+  async loginGitee(){
     vscode.window.showInformationMessage(`Successfully called loginGitee function currnt path is ${vscode.workspace.rootPath}.`);
+    const options = {
+      ignoreFocusOut: true,
+      password: false,
+      prompt: 'please input you gitee username/phone/email'
+    };
+    const pwdoptions = {
+      ignoreFocusOut: true,
+      password: true,
+      prompt: 'please input you gitee password'
+    };
+
+    let value = await vscode.window.showInputBox(options);    
+    if (!value){
+      vscode.window.showInformationMessage('please input you gitee id');
+      return;
+    }else{
+      this.giteeId = value.trim();
+    }
+    value = await vscode.window.showInputBox(pwdoptions);
+    if (!value){
+      vscode.window.showInformationMessage('please input you gitee pwd');
+      return;
+    }else{
+      this.giteePwd = value.trim();
+    }
+    axios.default.post('https://gitee.com/api/v3/session',`email=${this.giteeId}&password=${this.giteePwd}`).then(res=>{
+      this.giteeToken = res.data.private_token;
+    }).catch(err=>{
+      vscode.window.showErrorMessage('Gitee id or password is error!');
+    });    
   }
 }

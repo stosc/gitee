@@ -30,30 +30,36 @@
           "id": "myGitee",
           "name": "我的Gitee"
         }
-      ],
-      "scm": [
-        {
-          "id": "ftpExplorer",
-          "name": "FTP Explorer"
-        },
-        {
-          "id": "testView",
-          "name": "Test View"
-        }
       ]
     },
     "commands": [
       {
         "command": "gitee.login",
-        "title": "login",
+        "title": "登陆Gitee",
         "icon": {
           "light": "resources/light/login.svg",
           "dark": "resources/dark/login.svg"
         }
       },
       {
-        "command": "nodeDependencies.addEntry",
-        "title": "Add"
+        "command": "gitee.refresh",
+        "title": "刷新",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "gitee.createReop",
+        "title": "创建代码库"
+      },
+      {
+        "command": "gitee.createEntReop",
+        "title": "创建企业库"
+      },
+      {
+        "command": "gitee.createOrgReop",
+        "title": "创建组织库"
       },
       {
         "command": "nodeDependencies.editEntry",
@@ -66,66 +72,9 @@
       {
         "command": "nodeDependencies.deleteEntry",
         "title": "Delete"
-      },
-      {
-        "command": "ftpExplorer.refresh",
-        "title": "Refresh",
-        "icon": {
-          "light": "resources/light/refresh.svg",
-          "dark": "resources/dark/refresh.svg"
-        }
-      },
-      {
-        "command": "ftpExplorer.openFtpResource",
-        "title": "Open FTP Resource"
-      },
-      {
-        "command": "ftpExplorer.revealResource",
-        "title": "Reveal in FTP View"
-      },
-      {
-        "command": "jsonOutline.refresh",
-        "title": "Refresh",
-        "icon": {
-          "light": "resources/light/refresh.svg",
-          "dark": "resources/dark/refresh.svg"
-        }
-      },
-      {
-        "command": "jsonOutline.refreshNode",
-        "title": "Refresh",
-        "icon": {
-          "light": "resources/light/refresh.svg",
-          "dark": "resources/dark/refresh.svg"
-        }
-      },
-      {
-        "command": "jsonOutline.renameNode",
-        "title": "Rename"
-      },
-      {
-        "command": "fileExplorer.refreshFile",
-        "title": "Refresh",
-        "icon": {
-          "light": "resources/light/refresh.svg",
-          "dark": "resources/dark/refresh.svg"
-        }
-      },
-      {
-        "command": "fileExplorer.openFile",
-        "title": "Open File"
-      },
-      {
-        "command": "testView.reveal",
-        "title": "Test View: Reveal"
       }
     ],
     "menus": {
-      "commandPalette": [
-        {
-          "command": "ftpExplorer.revealResource"
-        }
-      ],
       "view/title": [
         {
           "command": "gitee.login",
@@ -133,17 +82,13 @@
           "group": "navigation"
         },
         {
-          "command": "nodeDependencies.addEntry",
-          "when": "view == myGitee"
-        },
-        {
-          "command": "jsonOutline.refresh",
-          "when": "view == jsonOutline",
+          "command": "gitee.refresh",
+          "when": "view == myGitee",
           "group": "navigation"
         },
         {
-          "command": "ftpExplorer.refresh",
-          "when": "view == ftpExplorer",
+          "command": "gitee.createReop",
+          "when": "view == myGitee",
           "group": "navigation"
         }
       ],
@@ -156,20 +101,6 @@
         {
           "command": "nodeDependencies.deleteEntry",
           "when": "view == nodeDependencies && viewItem == dependency"
-        },
-        {
-          "command": "jsonOutline.renameNode",
-          "when": "view == jsonOutline"
-        },
-        {
-          "command": "jsonOutline.refreshNode",
-          "when": "view == jsonOutline",
-          "group": "inline"
-        },
-        {
-          "command": "fileExplorer.refreshFile",
-          "when": "view == fileExplorer && viewItem == file",
-          "group": "inline"
         }
       ]
     },
@@ -198,7 +129,7 @@
     "@types/rimraf": "^2.0.2",
     "tslint": "^5.12.1",
     "typescript": "^3.3.1",
-    "vscode": "^1.1.28"
+    "vscode": "^1.1.35"
   },
   "dependencies": {
     "@types/jest": "^24.0.15",

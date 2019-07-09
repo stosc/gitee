@@ -14,6 +14,8 @@ export class GiteeReopProvider implements vscode.TreeDataProvider<GiteeReop | Re
   personalReops: GiteeReop[] = [];
   enterpriseReops: GiteeReop[] = [];
   organizationReops: GiteeReop[] = [];
+  context!: vscode.ExtensionContext;
+  
 
   createEntReop() {
     throw new Error("Method not implemented.");
@@ -22,86 +24,34 @@ export class GiteeReopProvider implements vscode.TreeDataProvider<GiteeReop | Re
     throw new Error("Method not implemented.");
   }
   createReop() {
-    this.createWebView('新建代码仓库', this.getCreateReopHtml());
+    this.createWebView('新建代码仓库', this.getWebViewContent('src/view/createReop.html'));
+  }
+
+  private getWebViewContent(templatePath:string) {
+    const resourcePath = path.join(this.context.extensionPath, templatePath);
+    const dirPath = path.dirname(resourcePath);
+    let html = fs.readFileSync(resourcePath, 'utf-8');    
+    // html = html.replace(/(<link.+?href="|<script.+?src="|<img.+?src=")(.+?)"/g, (m, $1, $2) => {
+    //   return $1 + vscode.Uri.file(path.resolve(dirPath, $2)).with({ scheme: 'vscode-resource' }).toString() + '"';
+    // });
+    return html;
   }
 
   private createWebView(title: string, content: string) {
     const panel = vscode.window.createWebviewPanel('createReop', title, vscode.ViewColumn.One, {
       enableScripts: true
     });
+
+    panel.webview.onDidReceiveMessage(message => {
+      vscode.window.showErrorMessage(`插件收到的消息：${message.data}`);
+    }, undefined, this.context.subscriptions);
+
     panel.webview.html = content;
-  }
-
-  private getCreateReopHtml(): string {
-    return `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="http://cdn.clouddeep.cn/amazeui/1.0.1/css/amazeui.min.css">
-        <title>新建仓库</title>
-    </head>
-    <body>  
-    <style>
-    body,input,legend{
-      background:var(--vscode-editor-background);
-      color:var(--vscode-editor-foreground);
-    }
-    .am-form{
-      background:var(--vscode-editor-background);
-    }
-    </style>      
-        <form class="am-form">
-          <fieldset>
-            <legend>新建仓库</legend>
-
-            <div class="am-form-group">
-              <label for="doc-ipt-email-1">仓库名称</label>
-              <input type="text" name="name" class="" id="doc-ipt-email-1" placeholder="输入仓库名称">
-            </div>
-
-            <div class="am-form-group">
-              <label for="doc-ipt-email-1">仓库描述</label>
-              <input type="text" name="description" class="" id="doc-ipt-email-1" placeholder="输入仓库描述">
-            </div>
-
-            <div class="am-form-group">
-              <label for="doc-select-1">允许提Issue与否</label>
-              <select name="has_issues">
-                <option value="true">提供Issue</option>
-                <option value="false">不提供Issue</option>                
-              </select>
-              <span class="am-form-caret"></span>
-            </div>
-
-            <div class="am-form-group">
-              <label for="doc-select-1">提供Wiki与否</label>
-              <select name="has_wiki">
-                <option value="true">提供Wiki</option>
-                <option value="false">不提供Wiki</option>                
-              </select>
-              <span class="am-form-caret"></span>
-            </div>
-            <div class="am-form-group">
-              <label for="doc-select-1">仓库私有</label>
-              <select name="private">
-              <option value="false">仓库私有</option>
-                <option value="true">仓库公开</option>                                
-              </select>
-              <span class="am-form-caret"></span>
-            </div>
-            <p><button type="submit" class="am-btn am-btn-default">提交</button></p>
-          </fieldset>
-        </form>
-        <script>
-            
-        </script>
-    </body>
-    </html>
-    `;
+    panel.webview.postMessage({text: '你好，我是小茗同学！'});
 
   }
+
+
 
   async loginGitee() {
     const options = {
@@ -171,7 +121,9 @@ export class GiteeReopProvider implements vscode.TreeDataProvider<GiteeReop | Re
   private _onDidChangeTreeData: vscode.EventEmitter<GiteeReop | ReopItem | undefined> = new vscode.EventEmitter<GiteeReop | ReopItem | undefined>();
   readonly onDidChangeTreeData: vscode.Event<GiteeReop | ReopItem | undefined> = this._onDidChangeTreeData.event;
 
-  constructor(private workspaceRoot: string | undefined) { }
+  constructor( context: vscode.ExtensionContext) {
+    this.context = context;
+   }
 
   async refresh(): Promise<void> {
     await this.getReops();
@@ -205,68 +157,6 @@ export class GiteeReopProvider implements vscode.TreeDataProvider<GiteeReop | Re
     }
     return Promise.resolve([]);
   }
-
-
-
-  /**
-   * Given the path to package.json, read all its dependencies and devDependencies.
-   */
-  private getDepsInPackageJson(packageJsonPath: string): GiteeReop[] {
-    if (this.pathExists(packageJsonPath)) {
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
-
-      const toDep = (moduleName: string, version: string): GiteeReop => {
-        if (
-          this.pathExists(
-            path.join(this.workspaceRoot ? this.workspaceRoot : '', "node_modules", moduleName)
-          )
-        ) {
-          return new GiteeReop(
-            moduleName,
-            version,
-            vscode.TreeItemCollapsibleState.Collapsed
-          );
-        } else {
-          return new GiteeReop(
-            moduleName,
-            version,
-            vscode.TreeItemCollapsibleState.None,
-            {
-              command: "extension.openPackageOnNpm",
-              title: "",
-              arguments: [moduleName]
-            }
-          );
-        }
-      };
-
-      const deps = packageJson.dependencies
-        ? Object.keys(packageJson.dependencies).map(dep =>
-          toDep(dep, packageJson.dependencies[dep])
-        )
-        : [];
-      const devDeps = packageJson.devDependencies
-        ? Object.keys(packageJson.devDependencies).map(dep =>
-          toDep(dep, packageJson.devDependencies[dep])
-        )
-        : [];
-      return deps.concat(devDeps);
-    } else {
-      return [];
-    }
-  }
-
-  private pathExists(p: string): boolean {
-    try {
-      fs.accessSync(p);
-    } catch (err) {
-      return false;
-    }
-
-    return true;
-  }
-
-
 
 }
 

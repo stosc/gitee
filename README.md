@@ -72,6 +72,8 @@ Added features X, Y, and Z.
 
 [svg 图标](https://www.flaticon.com/search?word=login)
 
-[插件开发文档](https://liiked.github.io/VS-Code-Extension-Doc-ZH/#/extensibility-reference/contribution-points?id=contributesmenus)
+[插件开发文档](https://liiked.github.io/VS-Code-Extension-Doc-ZH)
 
 [gitee参考文档](https://gitee.com/GitGroup/atom-gitee/blob/master/lib)
+
+[开发攻略](http://blog.haoji.me/vscode-plugin-webview.html)

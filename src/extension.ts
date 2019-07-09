@@ -5,7 +5,7 @@ import { GiteeReopProvider, GiteeReop, GiteeCmd } from "./gitee";
 export function activate(context: vscode.ExtensionContext) {
   //gitee
 
-  const giteeReopProvider = new GiteeReopProvider(vscode.workspace.rootPath);
+  const giteeReopProvider = new GiteeReopProvider(context);
   vscode.window.registerTreeDataProvider("myGitee", giteeReopProvider);
 
   //gitee command

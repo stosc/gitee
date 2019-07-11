@@ -2,108 +2,163 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import * as axios from "axios";
+import * as execa from 'execa';
 
 
 
-export class GiteeReopProvider implements vscode.TreeDataProvider<GiteeReop | ReopItem> {
+export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | ReposItem> {
 
-  giteeId: string = '';
-  giteePwd: string = '';
+  giteeId?: string = '';
+  giteePwd?: string = '';
   giteeToken: string = '';
   giteeRefreshToker: string = '';
-  personalReops: GiteeReop[] = [];
-  enterpriseReops: GiteeReop[] = [];
-  organizationReops: GiteeReop[] = [];
+  personalRepos: GiteeRepos[] = [];
+  enterpriseRepos: GiteeRepos[] = [];
+  organizationRepos: GiteeRepos[] = [];
   context!: vscode.ExtensionContext;
-  
+  enterpriseList: string[] = [];
+  organizationList: string[] = [];
+  outChannel:vscode.OutputChannel = vscode.window.createOutputChannel("gitee");
 
-  createEntReop() {
-    throw new Error("Method not implemented.");
+
+  createEntReposView() {
+    this.createWebView('新建企业代码仓库', this.getWebViewContent('src/view/createEntRepos.html'), this.enterpriseList);
   }
-  createOrgReop() {
-    throw new Error("Method not implemented.");
+  createOrgReposView() {
+    this.createWebView('新建组织代码仓库', this.getWebViewContent('src/view/createOrgRepos.html'), this.organizationList);
   }
-  createReop() {
-    this.createWebView('新建代码仓库', this.getWebViewContent('src/view/createReop.html'));
+  createReposView() {
+    this.createWebView('新建代码仓库', this.getWebViewContent('src/view/createRepos.html'));
   }
 
-  private getWebViewContent(templatePath:string) {
+  private async execute(cmd: string,uri: vscode.Uri): Promise<{ stdout: string; stderr: string }> {
+    const [git, ...args] = cmd.split(' ');
+    this.outChannel.appendLine(`${git} ${args.join(' ')}`);
+    return execa(git, args, { cwd: uri.fsPath });
+}
+
+  private createRepos(url:string,data:string){
+    axios.default.post(url, `access_token=${this.giteeToken}&${data}`).then(res => { 
+      vscode.window.showInformationMessage("仓库创建成功！");     
+      this.refresh();
+    }).catch(err => {
+      vscode.window.showErrorMessage(err.response.data.error.namespace_path[0]);
+    });
+    const gitSCM = vscode.scm.createSourceControl('git', "Git");
+    
+  }
+
+  private getWebViewContent(templatePath: string) {
     const resourcePath = path.join(this.context.extensionPath, templatePath);
     const dirPath = path.dirname(resourcePath);
-    let html = fs.readFileSync(resourcePath, 'utf-8');    
+    let html = fs.readFileSync(resourcePath, 'utf-8');
     // html = html.replace(/(<link.+?href="|<script.+?src="|<img.+?src=")(.+?)"/g, (m, $1, $2) => {
     //   return $1 + vscode.Uri.file(path.resolve(dirPath, $2)).with({ scheme: 'vscode-resource' }).toString() + '"';
     // });
     return html;
   }
 
-  private createWebView(title: string, content: string) {
-    const panel = vscode.window.createWebviewPanel('createReop', title, vscode.ViewColumn.One, {
+  private createWebView(title: string, content: string, postData: any = undefined) {
+    const panel = vscode.window.createWebviewPanel('createRepos', title, vscode.ViewColumn.One, {
       enableScripts: true
     });
 
     panel.webview.onDidReceiveMessage(message => {
-      vscode.window.showErrorMessage(`插件收到的消息：${message.data}`);
+      switch (message.category) {
+        case "getData":
+          panel.webview.postMessage(postData);
+          break;
+        case "person":          
+          this.createRepos("https://gitee.com/api/v5/user/repos",message.data);
+          break;
+        case "group":
+          this.createRepos(`https://gitee.com/api/v5/orgs/${message.path}/repos`,message.data);
+          break;
+        case "ent":
+          this.createRepos(`https://gitee.com/api/v5/enterprises/${message.path}/repos`,message.data);
+          break;
+      }
+      if (message.category === "getData") {
+        panel.webview.postMessage(postData);
+      }
     }, undefined, this.context.subscriptions);
 
     panel.webview.html = content;
-    panel.webview.postMessage({text: '你好，我是小茗同学！'});
-
   }
 
 
 
   async loginGitee() {
-    const options = {
-      ignoreFocusOut: true,
-      password: false,
-      prompt: '请输入你的gitee账户用户名/电话/e-mail'
-    };
-    const pwdoptions = {
-      ignoreFocusOut: true,
-      password: true,
-      prompt: '请输入gitee的登陆密码'
-    };
-    let value = await vscode.window.showInputBox(options);
-    if (!value) {
-      vscode.window.showErrorMessage('没有获取到gitee账户用户名/电话/e-mail');
-      return;
-    } else {
-      this.giteeId = value.trim();
-    }
-    value = await vscode.window.showInputBox(pwdoptions);
-    if (!value) {
-      vscode.window.showErrorMessage('没有获取到gitee的登陆密码');
-      return;
-    } else {
-      this.giteePwd = value.trim();
-    }
+    this.giteeId = this.context.globalState.get("gitee_id");
+    this.giteePwd = this.context.globalState.get("gitee_pwd");
+    if(!(this.giteeId&&this.giteePwd)){
+      const options = {
+        ignoreFocusOut: true,
+        password: false,
+        prompt: '请输入你的gitee账户用户名/电话/e-mail'
+      };
+      const pwdoptions = {
+        ignoreFocusOut: true,
+        password: true,
+        prompt: '请输入gitee的登陆密码'
+      };
+      let value = await vscode.window.showInputBox(options);
+      if (!value) {
+        vscode.window.showErrorMessage('没有获取到gitee账户用户名/电话/e-mail');
+        return;
+      } else {
+        this.giteeId = value.trim();
+      }
+      value = await vscode.window.showInputBox(pwdoptions);
+      if (!value) {
+        vscode.window.showErrorMessage('没有获取到gitee的登陆密码');
+        return;
+      } else {
+        this.giteePwd = value.trim();
+      }
+    }    
     axios.default.post('https://gitee.com/oauth/token', `grant_type=password&username=${this.giteeId}&password=${this.giteePwd}&client_id=f08290536f267056e6a89ea254eabb9c32d4df0f7fbf869c1fb950938054a49f&client_secret=718ce76856951418792c020ff91a582e23c5e4e9202275bd71b56bf12419f3c6&scope=user_info projects pull_requests issues notes keys hook groups gists enterprises`).then(res => {
       this.giteeToken = res.data.access_token;
       this.giteeRefreshToker = res.data.refresh_token;
+      this.context.globalState.update("gitee_id",this.giteeId);
+      this.context.globalState.update("gitee_pwd",this.giteePwd);
       this.refresh();
     }).catch(err => {
+      this.giteeId = undefined;
+      this.giteePwd = undefined;
       vscode.window.showErrorMessage('Gitee id or password is error!');
     });
   }
 
-  private async getReops(): Promise<void> {
-    this.personalReops = [];
-    this.enterpriseReops = [];
-    this.organizationReops = [];
+  private pushDataToArray(array: string[], item: string) {
+
+  }
+
+  private async getRepos(): Promise<void> {
+    this.personalRepos = [];
+    this.enterpriseRepos = [];
+    this.organizationRepos = [];
+    this.enterpriseList = [];
+    this.organizationList = [];
 
     axios.default.get(`https://gitee.com/api/v5/user/repos?access_token=${this.giteeToken}&sort=full_name&page=1&per_page=1000`).then(res => {
-      res.data.forEach((e: { name: string; html_url: string; namespace: { type: string }; }) => {
-        const r = new GiteeReop(e.name, e.html_url, vscode.TreeItemCollapsibleState.None);
+      res.data.forEach((e: { name: string; html_url: string; namespace: { type: string, path: string }; }) => {
+        const r = new GiteeRepos(e.name, e.html_url, vscode.TreeItemCollapsibleState.None,{command:'gitee.clone',title:'clone',arguments:[e.html_url]});
         switch (e.namespace.type) {
           case "enterprise":
-            this.enterpriseReops.push(r);
+            this.enterpriseRepos.push(r);
+            if (this.enterpriseList.indexOf(e.namespace.path) < 0) {
+              this.enterpriseList.push(e.namespace.path);
+            }
             break;
-          case "organization":
-            this.organizationReops.push(r);
+          case "group":
+            this.organizationRepos.push(r);
+            if (this.organizationList.indexOf(e.namespace.path) < 0) {
+              this.organizationList.push(e.namespace.path);
+            }
             break;
           default:
-            this.personalReops.push(r);
+            this.personalRepos.push(r);
             break;
         }
       });
@@ -118,23 +173,23 @@ export class GiteeReopProvider implements vscode.TreeDataProvider<GiteeReop | Re
   }
 
 
-  private _onDidChangeTreeData: vscode.EventEmitter<GiteeReop | ReopItem | undefined> = new vscode.EventEmitter<GiteeReop | ReopItem | undefined>();
-  readonly onDidChangeTreeData: vscode.Event<GiteeReop | ReopItem | undefined> = this._onDidChangeTreeData.event;
+  private _onDidChangeTreeData: vscode.EventEmitter<GiteeRepos | ReposItem | undefined> = new vscode.EventEmitter<GiteeRepos | ReposItem | undefined>();
+  readonly onDidChangeTreeData: vscode.Event<GiteeRepos | ReposItem | undefined> = this._onDidChangeTreeData.event;
 
-  constructor( context: vscode.ExtensionContext) {
+  constructor(context: vscode.ExtensionContext) {
     this.context = context;
-   }
+  }
 
   async refresh(): Promise<void> {
-    await this.getReops();
+    await this.getRepos();
 
   }
 
-  getTreeItem(element: GiteeReop | ReopItem): vscode.TreeItem {
+  getTreeItem(element: GiteeRepos | ReposItem): vscode.TreeItem {
     return element;
   }
 
-  getChildren(element?: GiteeReop): Thenable<GiteeReop[] | ReopItem[]> {
+  getChildren(element?: GiteeRepos): Thenable<GiteeRepos[] | ReposItem[]> {
     if (this.giteeToken === '') {
       vscode.window.showInformationMessage("请先登陆你的gitee账号");
       return Promise.resolve([]);
@@ -142,17 +197,17 @@ export class GiteeReopProvider implements vscode.TreeDataProvider<GiteeReop | Re
     if (element) {
       switch (element.fullName) {
         case "个人项目":
-          return Promise.resolve(this.personalReops);
+          return Promise.resolve(this.personalRepos);
         case "企业项目":
-          return Promise.resolve(this.enterpriseReops);
+          return Promise.resolve(this.enterpriseRepos);
         case "组织项目":
-          return Promise.resolve(this.organizationReops);
+          return Promise.resolve(this.organizationRepos);
       }
     } else {
       return Promise.resolve([
-        new GiteeReop("个人项目", "", vscode.TreeItemCollapsibleState.Collapsed),
-        new GiteeReop("企业项目", "", vscode.TreeItemCollapsibleState.Collapsed),
-        new GiteeReop("组织项目", "", vscode.TreeItemCollapsibleState.Collapsed)
+        new GiteeRepos("个人项目", "", vscode.TreeItemCollapsibleState.Collapsed),
+        new GiteeRepos("企业项目", "", vscode.TreeItemCollapsibleState.Collapsed),
+        new GiteeRepos("组织项目", "", vscode.TreeItemCollapsibleState.Collapsed)
       ]);
     }
     return Promise.resolve([]);
@@ -160,12 +215,12 @@ export class GiteeReopProvider implements vscode.TreeDataProvider<GiteeReop | Re
 
 }
 
-export class ReopItem extends vscode.TreeItem {
+export class ReposItem extends vscode.TreeItem {
 
 }
 
 
-export class GiteeReop extends vscode.TreeItem {
+export class GiteeRepos extends vscode.TreeItem {
   constructor(
     public readonly fullName: string,
     private htmlUrl: string,
@@ -203,17 +258,4 @@ export class GiteeReop extends vscode.TreeItem {
   };
 
   contextValue = "dependency";
-}
-
-
-export class GiteeCmd {
-
-
-  reopProvider: GiteeReopProvider;
-
-  constructor(reopProvider: GiteeReopProvider) {
-    this.reopProvider = reopProvider;
-  }
-
-
 }

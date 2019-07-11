@@ -19,7 +19,7 @@
       "activitybar": [
         {
           "id": "gitee-explorer",
-          "title": "Gitee Explorer",
+          "title": "Gitee",
           "icon": "media/gitee-logo.svg"
         }
       ]
@@ -50,15 +50,15 @@
         }
       },
       {
-        "command": "gitee.createReop",
+        "command": "gitee.createRepos",
         "title": "创建代码库"
       },
       {
-        "command": "gitee.createEntReop",
+        "command": "gitee.createEntRepos",
         "title": "创建企业库"
       },
       {
-        "command": "gitee.createOrgReop",
+        "command": "gitee.createOrgRepos",
         "title": "创建组织库"
       },
       {
@@ -87,15 +87,22 @@
           "group": "navigation"
         },
         {
-          "command": "gitee.createReop",
-          "when": "view == myGitee",
-          "group": "navigation"
+          "command": "gitee.createRepos",
+          "when": "view == myGitee"
+        },
+        {
+          "command": "gitee.createEntRepos",
+          "when": "view == myGitee"
+        },
+        {
+          "command": "gitee.createOrgRepos",
+          "when": "view == myGitee"
         }
       ],
       "view/item/context": [
         {
           "command": "nodeDependencies.editEntry",
-          "when": "view == nodeDependencies && viewItem == dependency",
+          "when": "view == myGitee && viewItem == GiteeRepos",
           "group": "inline"
         },
         {
@@ -117,11 +124,11 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "yarn run compile",
+    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "postinstall": "node ./node_modules/vscode/bin/install",
-    "test": "yarn run compile && node ./node_modules/vscode/bin/test"
+    "test": "npm run compile && node ./node_modules/vscode/bin/test"
   },
   "devDependencies": {
     "@types/mkdirp": "^0.5.2",
@@ -134,11 +141,14 @@
   "dependencies": {
     "@types/jest": "^24.0.15",
     "axios": "^0.19.0",
+    "execa": "^2.0.3",
     "fs": "^0.0.1-security",
     "ftp": "^0.3.10",
     "jsonc-parser": "^0.4.2",
     "mkdirp": "^0.5.1",
     "path": "^0.12.7",
-    "rimraf": "^2.6.2"
+    "rimraf": "^2.6.2",
+    "sander": "^0.6.0",
+    "tsdi": "^0.20.3"
   }
 }

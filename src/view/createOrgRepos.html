@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+    <title>新建组织代码仓库</title>
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.bootcss.com/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.bootcss.com/bootstrap/4.0.0/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        crossorigin="anonymous"></script>
+    <script type="text/javascript">
+        const vscode = acquireVsCodeApi();
+        
+        $(function () {
+            window.addEventListener('message', function(event) {
+                recData = event.data;
+                $.each(recData,function(index,item){
+                    var opt=$("<option value="+item+">"+item+"</option>")
+                    $("#reop_org").append(opt)
+                });           
+            }) 
+            $("#btn_create").click(function (event) {
+                console.log('Webview接收到的消息：', recData);
+                var c = 0;
+                const f = $("#reopInfo");
+                if (f[0].checkValidity() === false) {
+                    c++;
+                }
+                f.addClass("was-validated")
+                if (c == 0) {
+                    var data = undefined;
+                    var d = serializeForm("reopInfo");
+                    data = { category: 'group', data: d,path:$("#reop_org").val() }
+                    vscode.postMessage(data);
+                }
+            })
+            vscode.postMessage({ category: 'getData' });
+            //获取指定form中的所有的<input>对象 
+            function getElements(formId) {
+                var form = document.getElementById(formId);
+                var elements = new Array();
+                var tagElements = form.getElementsByTagName('input');
+                for (var j = 0; j < tagElements.length; j++) {
+                    elements.push(tagElements[j]);
+                }
+                var tagElements = form.getElementsByTagName('select');
+                for (var j = 0; j < tagElements.length; j++) {
+                    elements.push(tagElements[j]);
+                }
+                var tagElements = form.getElementsByTagName('textarea');
+                for (var j = 0; j < tagElements.length; j++) {
+                    elements.push(tagElements[j]);
+                }
+                return elements;
+            }
+            //组合URL 
+            function serializeElement(element) {
+                var method = element.tagName.toLowerCase();
+                var parameter;
+                if (method == 'select') {
+                    parameter = [element.name, element.value];
+                }
+                switch (element.type.toLowerCase()) {
+                    case 'submit':
+                    case 'hidden':
+                    case 'password':
+                    case 'text':
+                    case 'date':
+                    case 'textarea':
+                        if (element.value && element.value != "") {
+                            parameter = [element.name, element.value];
+                        }
+                        break;
+                    case 'checkbox':
+                    case 'radio':
+                        if (element.checked) {
+                            parameter = [element.name, element.value];
+                        }
+                        break;
+                }
+                if (parameter) {
+                    var key = encodeURIComponent(parameter[0]);
+                    if (key.length == 0)
+                        return;
+                    if (parameter[1].constructor != Array)
+                        parameter[1] = [parameter[1]];
+                    var values = parameter[1];
+                    var results = [];
+                    for (var i = 0; i < values.length; i++) {
+                        results.push(key + '=' + encodeURIComponent(values[i]));
+                    }
+                    return results.join('&');
+                }
+            }
+            //调用方法  
+            function serializeForm(formId) {
+                var elements = getElements(formId);
+                var queryComponents = new Array();
+                for (var i = 0; i < elements.length; i++) {
+                    var queryComponent = serializeElement(elements[i]);
+                    if (queryComponent) {
+                        queryComponents.push(queryComponent);
+                    }
+                }
+                return queryComponents.join('&');
+            }
+        })
+    </script>
+</head>
+
+<body>
+    <style>
+        body,
+        input,
+        legend {
+            background: var(--vscode-editor-background);
+            color: var(--vscode-editor-foreground);
+        }
+
+        .am-form {
+            background: var(--vscode-editor-background);
+        }
+    </style>
+    <script>
+          
+    </script>
+    <div class="container" style="margin-top: 67px;">
+        <form action="" novalidate id="reopInfo">
+            <div class="form-group">
+                <label for="reop_name">仓库名称<i>*</i></label>
+                <input type="text" id="reop_name" name="name" class="form-control" required="required"
+                    placeholder="请输入仓库名称" pattern="^[A-Za-z][A-Za-z0-9_\.\-]*$">
+                <div class="invalid-feedback">只允许字母、数字或者下划线(_)、中划线(-)、英文句号(.)，必须以字母开头</div>
+            </div>
+
+            <div class="form-group">
+                <label for="reop_org">组织<i>*</i></label>
+                <select name="org" id="reop_org" class="form-control" required="required">
+                    
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="reop_desc">仓库描述</label>
+                <input type="text" id="reop_desc" name="description" class="form-control" placeholder="请输入仓描述">
+            </div>
+            <div class="form-group">
+                <label for="reop_has_issues">允许提Issue与否</label>
+                <select name="has_issues" id="reop_has_issues" class="form-control">
+                    <option value="true">提供Issue</option>
+                    <option value="false">不提供Issue</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="reop_has_wiki">提供Wiki与否</label>
+                <select name="has_wiki" id="reop_has_wiki" class="form-control">
+                    <option value="true">提供Wiki</option>
+                    <option value="false">不提供Wiki</option>
+                </select>
+            </div>            
+            <div class="form-group">
+                <label for="reop_private">仓库私有</label>
+                <select name="private" id="reop_private" class="form-control">
+                    <option value="false">仓库私有</option>
+                    <option value="true">仓库公开</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="reop_public">开源类型</label>
+                <select name="public" id="reop_public" class="form-control">
+                    <option value="0">私有</option>
+                    <option value="1">外部开源</option>
+                    <option value="2">内部开源</option>
+                </select>
+            </div>
+
+        </form>
+        <button id="btn_create" class="btn btn-primary">创建仓库</button>
+    </div>
+    <style>
+        i {
+            color: red;
+        }
+    </style>
+
+</body>
+
+</html>

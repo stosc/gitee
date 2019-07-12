@@ -1,12 +1,12 @@
 "use strict";
 import * as vscode from "vscode";
-import { GiteeReposProvider, GiteeRepos } from "./gitee";
+import { GiteeReposProvider, SshInfo } from "./gitee";
 
 export function activate(context: vscode.ExtensionContext) {
   //gitee
-  
+
   const giteeReposProvider = new GiteeReposProvider(context);
-  vscode.window.registerTreeDataProvider("myGitee", giteeReposProvider);  
+  vscode.window.registerTreeDataProvider("myGitee", giteeReposProvider);
   //gitee command
   vscode.commands.registerCommand("gitee.login", () => { giteeReposProvider.loginGitee(); });
   vscode.commands.registerCommand("gitee.refresh", () => { giteeReposProvider.refresh(); });
@@ -14,15 +14,8 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand("gitee.createEntRepos", () => { giteeReposProvider.createEntReposView(); });
   vscode.commands.registerCommand("gitee.createOrgRepos", () => { giteeReposProvider.createOrgReposView(); });
   vscode.commands.registerCommand("gitee.test", () => { giteeReposProvider.test(); });
-  vscode.commands.registerCommand("gitee.clone", (node: string) => vscode.window.showInformationMessage(`Successfully called edit entry on ${node}.`)
-  );
-  vscode.commands.registerCommand(
-    "nodeDependencies.deleteEntry",
-    (node: GiteeRepos) =>
-      vscode.window.showInformationMessage(
-        `Successfully called delete entry on ${node.fullName}.`
-      )
-  );
+  vscode.commands.registerCommand("gitee.clone", (node: string) => vscode.window.showInformationMessage(`Successfully called edit entry on ${node}.`));
+  vscode.commands.registerCommand("gitee.selectedRepos", (ssh: SshInfo) => { giteeReposProvider.setSelectedRepos(ssh); });
 
   giteeReposProvider.loginGitee();
 

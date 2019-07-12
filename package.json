@@ -11,6 +11,7 @@
   ],
   "activationEvents": [
     "onView:myGitee",
+    "onView:scm",
     "onCommand:extension.helloWorld"
   ],
   "main": "./out/extension.js",
@@ -62,20 +63,24 @@
         "title": "创建组织库"
       },
       {
+        "command": "gitee.clone",
+        "title": "克隆"
+      },
+      {
+        "command": "gitee.cloneTo",
+        "title": "克隆到..."
+      },
+      {
+        "command": "gitee.setRemote",
+        "title": "设为远程仓库"
+      },
+      {
+        "command": "gitee.selectedRepos",
+        "title": "选中仓库"
+      },
+      {
         "command": "gitee.test",
         "title": "测试"
-      },
-      {
-        "command": "nodeDependencies.editEntry",
-        "title": "Edit",
-        "icon": {
-          "light": "resources/light/edit.svg",
-          "dark": "resources/dark/edit.svg"
-        }
-      },
-      {
-        "command": "nodeDependencies.deleteEntry",
-        "title": "Delete"
       }
     ],
     "menus": {
@@ -103,8 +108,30 @@
           "when": "view == myGitee"
         },
         {
+          "command": "gitee.clone",
+          "when": "view == myGitee"
+        },
+        {
+          "command": "gitee.cloneTo",
+          "when": "view == myGitee"
+        },
+        {
+          "command": "gitee.setRemote",
+          "when": "view == myGitee"
+        },
+        {
           "command": "gitee.test",
           "when": "view == myGitee"
+        },
+        {
+          "command": "gitee.test",
+          "when": "view == myGitee"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "gitee.test",
+          "when": "view == scm"
         }
       ],
       "view/item/context": [

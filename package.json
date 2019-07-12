@@ -62,6 +62,10 @@
         "title": "创建组织库"
       },
       {
+        "command": "gitee.test",
+        "title": "测试"
+      },
+      {
         "command": "nodeDependencies.editEntry",
         "title": "Edit",
         "icon": {
@@ -96,6 +100,10 @@
         },
         {
           "command": "gitee.createOrgRepos",
+          "when": "view == myGitee"
+        },
+        {
+          "command": "gitee.test",
           "when": "view == myGitee"
         }
       ],

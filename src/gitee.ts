@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import * as axios from "axios";
 import * as execa from 'execa';
@@ -7,6 +8,21 @@ import * as execa from 'execa';
 
 
 export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | ReposItem> {
+  async test() {
+    //const r = await this.checkExistence(vscode.Uri.file(process.cwd()));
+    //const r = await this.addRemote("https://gitee.com/zkzyrz/test");
+    try {
+      const filename = `${os.homedir}\\.ssh\\id_rsa_${Date.now().toString()}`;
+      const r = await execa(`ssh-keygen -t rsa -N "${this.giteePwd}" -C "${this.giteeId}" -f ${filename}`);
+      
+      var contentText = fs.readFileSync(`${filename}.pub`,'utf-8');
+      
+    } catch (error) {
+      
+    }
+    
+    // vscode.window.showInformationMessage(r.msg);
+  }
 
   giteeId?: string = '';
   giteePwd?: string = '';
@@ -31,10 +47,61 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
     this.createWebView('新建代码仓库', this.getWebViewContent('src/view/createRepos.html'));
   }
 
+  async addRemote(addr:string):Promise<{statue:boolean,msg:string}> {
+    let url = this.getWorkspaceUrl();
+    if(url){
+      let s = await this.checkExistence(url);
+      if(!s){
+        return {statue:false,msg:`没有安装Git`};
+      }
+      let r = await this.checkExistRepository(url);
+      if(!r){
+        return {statue:false,msg:`没有初始化git仓库！`};
+      }
+      let a = await this.execute(`git remote -v`, url);
+      if(a.stdout !== ""){        
+        return {statue:false,msg:`已经存在以下远程仓库${a.stdout}`};
+      }
+      let ar = await this.execute(`git remote add origin ${addr}`, url);
+      return {statue:true,msg:``};
+
+    }else{
+      return {statue:false,msg:`没有打开的工作区`};
+    }    
+  }
+
+  private getWorkspaceUrl():vscode.Uri | undefined{
+    if(vscode.workspace.rootPath){
+      return vscode.Uri.parse(vscode.workspace.rootPath);
+    }else{
+      return undefined;
+    }
+  }
+
+
+  async checkExistRepository(uri: vscode.Uri): Promise<boolean> {
+    try {
+      await this.execute('git status', uri);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async checkExistence(uri: vscode.Uri): Promise<boolean> {
+    try {
+      await this.execute('git --version', uri);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   private async execute(cmd: string,uri: vscode.Uri): Promise<{ stdout: string; stderr: string }> {
     const [git, ...args] = cmd.split(' ');
+    this.outChannel.show();
     this.outChannel.appendLine(`${git} ${args.join(' ')}`);
-    return execa(git, args, { cwd: uri.fsPath });
+    return execa(git, args, { cwd: uri.fsPath }) ;
 }
 
   private createRepos(url:string,data:string){
@@ -85,7 +152,6 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
 
     panel.webview.html = content;
   }
-
 
 
   async loginGitee() {

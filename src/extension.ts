@@ -13,6 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand("gitee.createRepos", () => { giteeReposProvider.createReposView(); });
   vscode.commands.registerCommand("gitee.createEntRepos", () => { giteeReposProvider.createEntReposView(); });
   vscode.commands.registerCommand("gitee.createOrgRepos", () => { giteeReposProvider.createOrgReposView(); });
+  vscode.commands.registerCommand("gitee.test", () => { giteeReposProvider.test(); });
   vscode.commands.registerCommand("gitee.clone", (node: string) => vscode.window.showInformationMessage(`Successfully called edit entry on ${node}.`)
   );
   vscode.commands.registerCommand(

@@ -11,7 +11,6 @@
   ],
   "activationEvents": [
     "onView:myGitee",
-    "onView:scm",
     "onCommand:extension.helloWorld"
   ],
   "main": "./out/extension.js",
@@ -29,7 +28,7 @@
       "gitee-explorer": [
         {
           "id": "myGitee",
-          "name": "我的Gitee"
+          "name": "码云"
         }
       ]
     },
@@ -64,7 +63,11 @@
       },
       {
         "command": "gitee.clone",
-        "title": "克隆"
+        "title": "克隆",
+        "icon": {
+          "light": "resources/light/clone.png",
+          "dark": "resources/dark/clone.png"
+        }
       },
       {
         "command": "gitee.cloneTo",
@@ -72,7 +75,11 @@
       },
       {
         "command": "gitee.setRemote",
-        "title": "设为远程仓库"
+        "title": "设为远程仓库",
+        "icon": {
+          "light": "resources/light/remote.png",
+          "dark": "resources/dark/remote.png"
+        }
       },
       {
         "command": "gitee.selectedRepos",
@@ -128,21 +135,16 @@
           "when": "view == myGitee"
         }
       ],
-      "scm/title": [
-        {
-          "command": "gitee.test",
-          "when": "view == scm"
-        }
-      ],
       "view/item/context": [
         {
-          "command": "nodeDependencies.editEntry",
-          "when": "view == myGitee && viewItem == GiteeRepos",
-          "group": "inline"
+          "command": "gitee.clone",
+          "when": "view == myGitee",
+          "group": "inline@1"
         },
         {
-          "command": "nodeDependencies.deleteEntry",
-          "when": "view == nodeDependencies && viewItem == dependency"
+          "command": "gitee.setRemote",
+          "when": "view == myGitee",
+          "group": "inline@2"
         }
       ]
     },

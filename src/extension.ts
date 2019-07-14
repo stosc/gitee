@@ -1,6 +1,6 @@
 "use strict";
 import * as vscode from "vscode";
-import { GiteeReposProvider, SshInfo } from "./gitee";
+import { GiteeReposProvider, GiteeRepos, SshInfo } from "./gitee";
 
 export function activate(context: vscode.ExtensionContext) {
   //gitee
@@ -13,9 +13,12 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand("gitee.createRepos", () => { giteeReposProvider.createReposView(); });
   vscode.commands.registerCommand("gitee.createEntRepos", () => { giteeReposProvider.createEntReposView(); });
   vscode.commands.registerCommand("gitee.createOrgRepos", () => { giteeReposProvider.createOrgReposView(); });
-  vscode.commands.registerCommand("gitee.test", () => { giteeReposProvider.test(); });
-  vscode.commands.registerCommand("gitee.clone", (node: string) => vscode.window.showInformationMessage(`Successfully called edit entry on ${node}.`));
+  vscode.commands.registerCommand("gitee.test", (node: any) => { giteeReposProvider.test(node); });
+  vscode.commands.registerCommand("gitee.clone", (node: GiteeRepos) => giteeReposProvider.clone(node));
   vscode.commands.registerCommand("gitee.selectedRepos", (ssh: SshInfo) => { giteeReposProvider.setSelectedRepos(ssh); });
+
+  vscode.commands.registerCommand("gitee.cloneTo", () => { giteeReposProvider.cloneTo(); });
+  vscode.commands.registerCommand("gitee.setRemote", (node: GiteeRepos) => { giteeReposProvider.setRemote(node); });
 
   giteeReposProvider.loginGitee();
 

@@ -2,15 +2,11 @@
 
 This is the README for your extension "gitee". After writing up a brief description, we recommend including the following sections.
 
-## Features
+## 特性
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+使用图标区别代码库的类型是属于个人、企业还是组织。
 
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+仓库项目显示详情在 tootip 中，显示仓库名称。选择项中要出现克隆、克隆到和设为远端仓库选项。
 
 ## Requirements
 
@@ -74,6 +70,6 @@ Added features X, Y, and Z.
 
 [插件开发文档](https://liiked.github.io/VS-Code-Extension-Doc-ZH)
 
-[gitee参考文档](https://gitee.com/GitGroup/atom-gitee/blob/master/lib)
+[gitee 参考文档](https://gitee.com/GitGroup/atom-gitee/blob/master/lib)
 
 [开发攻略](http://blog.haoji.me/vscode-plugin-webview.html)

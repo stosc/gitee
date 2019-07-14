@@ -8,10 +8,60 @@ import * as execa from 'execa';
 
 
 export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | ReposItem> {
+  async clone(node: GiteeRepos) {
+    let items: vscode.QuickPickItem[] = [];
+    items.push({ label: "克隆到...", detail: `克隆项目${node.fullName}到你选择的文件夹中，并在新的vscode实例中打开。` });
+    if (vscode.workspace.rootPath) {
+      items.push({ label: "克隆", detail: `克隆项目${node.fullName}到当前vscode已经打开的文件夹中。` });
+    }
+    const chosen: vscode.QuickPickItem | undefined = await vscode.window.showQuickPick(items);
+    if (chosen) {
+      let path: string;
+      if (chosen.label === "克隆到...") {
+        const f = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: "选择克隆到的文件夹" });
+        path = f ? f[0].path : "";
+      } else {
+        const f = await vscode.window.showWorkspaceFolderPick();
+        path = f ? f.uri.path : "";
+      }
+      if (path !== "") {
+        //此处clong项目并为项目添加ssh-key
+      }
 
-  async test() {
+
+    }
+  }
+  async  setRemote(node: GiteeRepos) {
+    // 初始化选项列表清单
+    let items: vscode.QuickPickItem[] = [];
+    items.push({ label: "linux", description: "The Linux Platform", detail: "dddddd" });
+    items.push({ label: "macosx", description: "The MacOS Platform" });
+    items.push({ label: "windows", description: "The Windows Platform" });
+    items.push({ label: "android", description: "The Android Platform" });
+    items.push({ label: "iphoneos", description: "The iPhoneOS Platform" });
+    items.push({ label: "watchos", description: "The WatchOS Platform" });
+    items.push({ label: "mingw", description: "The MingW Platform" });
+    items.push({ label: "cross", description: "The Cross Platform" });
+
+    // 显示选项列表，提示用户选择
+    const chosen: vscode.QuickPickItem | undefined = await vscode.window.showQuickPick(items);
+    if (chosen) {
+
+      // 获取选择后的结果，然后更新状态栏按钮文本
+
+    }
+
+  }
+  cloneTo() {
+    throw new Error("Method not implemented.");
+  }
+
+  async test(node: any) {
     //const r = await this.checkExistence(vscode.Uri.file(process.cwd()));
     //const r = await this.addRemote("https://gitee.com/zkzyrz/test");
+    if (node) {
+
+    }
     try {
       const filename = `${os.homedir}\\.ssh\\id_rsa_${Date.now().toString()}`;
       const r = await execa(`ssh-keygen -t rsa -N "${this.giteePwd}" -C "${this.giteeId}" -f ${filename}`);
@@ -37,6 +87,20 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
   organizationList: string[] = [];
   outChannel: vscode.OutputChannel = vscode.window.createOutputChannel("gitee");
   selectedRepos?: SshInfo = undefined;
+  persionIconPath = {
+    light: path.join(__filename, "..", "..", "resources", "light", "personal.png"),
+    dark: path.join(__filename, "..", "..", "resources", "dark", "personal.png")
+  };
+  entIconPath = {
+    light: path.join(__filename, "..", "..", "resources", "light", "ent.png"),
+    dark: path.join(__filename, "..", "..", "resources", "dark", "ent.png")
+  };
+  orgIconPath = {
+    light: path.join(__filename, "..", "..", "resources", "light", "group.png"),
+    dark: path.join(__filename, "..", "..", "resources", "dark", "group.png")
+  };
+
+
 
   setSelectedRepos(ssh: SshInfo) {
     if (ssh.name === "") {
@@ -209,9 +273,17 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
       this.context.globalState.update("gitee_pwd", this.giteePwd);
       this.refresh();
     }).catch(err => {
-      this.giteeId = undefined;
-      this.giteePwd = undefined;
-      vscode.window.showErrorMessage('Gitee id or password is error!');
+
+      if (err.toString() === "Error: Request failed with status code 401") {
+        this.giteeId = undefined;
+        this.giteePwd = undefined;
+        this.context.globalState.update("gitee_id", this.giteeId);
+        this.context.globalState.update("gitee_pwd", this.giteePwd);
+        vscode.window.showErrorMessage('登陆失败，检查用户名或密码！');
+      } else {
+        vscode.window.showErrorMessage('登陆失败，检查网络链接！');
+      }
+
     });
   }
 
@@ -227,22 +299,27 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
     this.organizationList = [];
 
     axios.default.get(`https://gitee.com/api/v5/user/repos?access_token=${this.giteeToken}&sort=full_name&page=1&per_page=1000`).then(res => {
-      res.data.forEach((e: { name: string; html_url: string; ssh_url: string; path: string; namespace: { type: string, path: string }; }) => {
-        const r = new GiteeRepos(e.name, e.html_url, e.ssh_url, vscode.TreeItemCollapsibleState.None, { command: 'gitee.selectedRepos', title: 'selected', arguments: [new SshInfo(e.name, e.ssh_url, e.namespace.path, e.path)] });
+      res.data.forEach((e: { name: string; html_url: string; ssh_url: string; description: string; path: string; namespace: { type: string, path: string }; }) => {
+        const r = new GiteeRepos(e.name, e.html_url, e.ssh_url, e.description, vscode.TreeItemCollapsibleState.None, { command: 'gitee.selectedRepos', title: 'selected', arguments: [new SshInfo(e.name, e.ssh_url, e.namespace.path, e.path)] });
         switch (e.namespace.type) {
           case "enterprise":
+            r.iconPath = this.entIconPath;
+            r.category = "企业项目";
             this.enterpriseRepos.push(r);
             if (this.enterpriseList.indexOf(e.namespace.path) < 0) {
               this.enterpriseList.push(e.namespace.path);
             }
             break;
           case "group":
+            r.iconPath = this.orgIconPath;
+            r.category = "组织项目";
             this.organizationRepos.push(r);
             if (this.organizationList.indexOf(e.namespace.path) < 0) {
               this.organizationList.push(e.namespace.path);
             }
             break;
           default:
+            r.iconPath = this.persionIconPath;
             this.personalRepos.push(r);
             break;
         }
@@ -278,24 +355,26 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
     if (this.giteeToken === '') {
       vscode.window.showInformationMessage("请先登陆你的gitee账号");
       return Promise.resolve([]);
-    }
-    if (element) {
-      switch (element.fullName) {
-        case "个人项目":
-          return Promise.resolve(this.personalRepos);
-        case "企业项目":
-          return Promise.resolve(this.enterpriseRepos);
-        case "组织项目":
-          return Promise.resolve(this.organizationRepos);
-      }
     } else {
-      return Promise.resolve([
-        new ReposItem("个人项目", vscode.TreeItemCollapsibleState.Collapsed, { command: 'gitee.selectedRepos', title: 'selected', arguments: [new SshInfo("")] }),
-        new ReposItem("企业项目", vscode.TreeItemCollapsibleState.Collapsed, { command: 'gitee.selectedRepos', title: 'selected', arguments: [new SshInfo("")] }),
-        new ReposItem("组织项目", vscode.TreeItemCollapsibleState.Collapsed, { command: 'gitee.selectedRepos', title: 'selected', arguments: [new SshInfo("")] })
-      ]);
+      return Promise.resolve(this.personalRepos.concat(this.enterpriseRepos).concat(this.organizationRepos));
     }
-    return Promise.resolve([]);
+    // if (element) {
+    //   switch (element.fullName) {
+    //     case "个人项目":
+    //       return Promise.resolve(this.personalRepos.concat(this.enterpriseRepos).concat(this.organizationRepos));
+    //     case "企业项目":
+    //       return Promise.resolve(this.enterpriseRepos);
+    //     case "组织项目":
+    //       return Promise.resolve(this.organizationRepos);
+    //   }
+    // } else {
+    //   return Promise.resolve([
+    //     new ReposItem("个人项目", vscode.TreeItemCollapsibleState.Collapsed, { command: 'gitee.selectedRepos', title: 'selected', arguments: [new SshInfo("")] }),
+    //     new ReposItem("企业项目", vscode.TreeItemCollapsibleState.Collapsed, { command: 'gitee.selectedRepos', title: 'selected', arguments: [new SshInfo("")] }),
+    //     new ReposItem("组织项目", vscode.TreeItemCollapsibleState.Collapsed, { command: 'gitee.selectedRepos', title: 'selected', arguments: [new SshInfo("")] })
+    //   ]);
+    // }
+    // return Promise.resolve([]);
   }
 
 }
@@ -331,18 +410,21 @@ export class GiteeRepos extends vscode.TreeItem {
     public readonly fullName: string,
     public htmlUrl: string,
     public sshUrl: string,
+    public desc: string,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-    public readonly command?: vscode.Command
+    public readonly command?: vscode.Command,
+    public category: string = "个人项目"
+
   ) {
     super(fullName, collapsibleState);
   }
 
   get tooltip(): string {
-    return `${this.fullName}`;
+    return this.desc;
   }
 
   get description(): string {
-    return this.htmlUrl;
+    return `${this.category}`;
   }
 
   iconPath = {

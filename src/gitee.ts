@@ -4,6 +4,7 @@ import * as os from "os";
 import * as path from "path";
 import * as axios from "axios";
 import * as execa from 'execa';
+import { removeListener } from "cluster";
 
 
 
@@ -25,12 +26,35 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
         path = f ? f.uri.path : "";
       }
       if (path !== "") {
+        this.giteeStatusBarItem.text = `$(pulse) 正在clone代码库...`;
+        this.giteeStatusBarItem.show();
         //此处clong项目并为项目添加ssh-key
+        const sshkey = await this.getSSHKey();
+        const p = await this.setSSHKeyToRepo(sshkey.name,sshkey.key,node.owner,node.repo);        
+        let uri = vscode.Uri.file(path);
+        let c = await this.execute(`git clone ${node.sshUrl}`,vscode.Uri.parse(path));
+        await vscode.commands.executeCommand('vscode.openFolder', uri);
+        this.giteeStatusBarItem.hide();
       }
-
-
     }
   }
+
+  async setSSHKeyToRepo(name:string,key:string,owner:string,repo:string){
+    try{       
+      let reqConfig: axios.AxiosRequestConfig = {
+        method: "post",
+        url: `https://gitee.com/api/v5/repos/${owner}/${repo}/keys`,
+        data: `{"access_token":"${this.giteeToken}","owner":"${owner}","repo":"${repo}","key":"${key.trim()}","title":"${name}"}`,
+        headers: {
+            "Content-Type": "application/json"
+        }
+      };
+      let dr = await axios.default.request(reqConfig);
+    }catch(err){
+      console.log(err);
+    }
+  }
+
   async  setRemote(node: GiteeRepos) {
     // 初始化选项列表清单
     let items: vscode.QuickPickItem[] = [];
@@ -56,6 +80,19 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
     throw new Error("Method not implemented.");
   }
 
+  async getSSHKey():Promise<{name:string,key:string}>{
+    try {      
+      const filename = `${os.homedir}\\.ssh\\gitee_id_rsa`;
+      const pubFile = `${filename}.pub`;
+      if (!fs.existsSync(pubFile)){
+        const r = await this.execute(`ssh-keygen -t rsa -N "gitee" -C "${this.giteeId}" -f ${filename}`,vscode.Uri.parse(process.execPath));
+      }
+      var contentText = fs.readFileSync(`${filename}.pub`, 'utf-8');
+      return Promise.resolve({name:`${this.giteeId}_${os.hostname()}_vscode`,key:`${contentText}`});
+    } catch (error) {
+      return Promise.resolve(error);
+    }
+  }
   async test(node: any) {
     //const r = await this.checkExistence(vscode.Uri.file(process.cwd()));
     //const r = await this.addRemote("https://gitee.com/zkzyrz/test");
@@ -99,6 +136,8 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
     light: path.join(__filename, "..", "..", "resources", "light", "group.png"),
     dark: path.join(__filename, "..", "..", "resources", "dark", "group.png")
   };
+
+  giteeStatusBarItem: vscode.StatusBarItem= vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left,1000);
 
 
 
@@ -227,17 +266,20 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
     panel.webview.html = content;
   }
 
-  async setSSHKey() {
-    try {
-      const filename = `${os.homedir}\\.ssh\\id_rsa_${Date.now().toString()}`;
-      const r = await execa(`ssh-keygen -t rsa -N "${this.giteePwd}" -C "${this.giteeId}" -f ${filename}`);
-      const key = fs.readFileSync(`${filename}.pub`, 'utf-8');
-    } catch (error) {
+  // async setSSHKey() {
+  //   try {
+  //     const filename = `${os.homedir}\\.ssh\\id_rsa_${Date.now().toString()}`;
+  //     const r = await execa(`ssh-keygen -t rsa -N "${this.giteePwd}" -C "${this.giteeId}" -f ${filename}`);
+  //     const key = fs.readFileSync(`${filename}.pub`, 'utf-8');
+  //   } catch (error) {
 
-    }
-  }
+  //   }
+  // }
 
   async loginGitee() {
+    this.giteeStatusBarItem.text = "$(pulse) 正在尝试登陆Gitee...";  
+    this.giteeStatusBarItem.tooltip = "gitee插件";
+    this.giteeStatusBarItem.show();
     this.giteeId = this.context.globalState.get("gitee_id");
     this.giteePwd = this.context.globalState.get("gitee_pwd");
     if (!(this.giteeId && this.giteePwd)) {
@@ -272,6 +314,7 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
       this.context.globalState.update("gitee_id", this.giteeId);
       this.context.globalState.update("gitee_pwd", this.giteePwd);
       this.refresh();
+      
     }).catch(err => {
 
       if (err.toString() === "Error: Request failed with status code 401") {
@@ -283,7 +326,7 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
       } else {
         vscode.window.showErrorMessage('登陆失败，检查网络链接！');
       }
-
+      this.giteeStatusBarItem.hide();
     });
   }
 
@@ -300,7 +343,7 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
 
     axios.default.get(`https://gitee.com/api/v5/user/repos?access_token=${this.giteeToken}&sort=full_name&page=1&per_page=1000`).then(res => {
       res.data.forEach((e: { name: string; html_url: string; ssh_url: string; description: string; path: string; namespace: { type: string, path: string }; }) => {
-        const r = new GiteeRepos(e.name, e.html_url, e.ssh_url, e.description, vscode.TreeItemCollapsibleState.None, { command: 'gitee.selectedRepos', title: 'selected', arguments: [new SshInfo(e.name, e.ssh_url, e.namespace.path, e.path)] });
+        const r = new GiteeRepos(e.name, e.html_url, e.ssh_url, e.description,e.namespace.path, e.path, vscode.TreeItemCollapsibleState.None,{ command: 'gitee.selectedRepos', title: 'selected', arguments: [] });
         switch (e.namespace.type) {
           case "enterprise":
             r.iconPath = this.entIconPath;
@@ -342,9 +385,11 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
     this.context = context;
   }
 
-  async refresh(): Promise<void> {
+  async refresh(): Promise<void> { 
+    this.giteeStatusBarItem.text = `$(pulse) 正在刷新代码长裤信息...`;
+    this.giteeStatusBarItem.show();
     await this.getRepos();
-
+    this.giteeStatusBarItem.hide();
   }
 
   getTreeItem(element: GiteeRepos | ReposItem): vscode.TreeItem {
@@ -411,7 +456,9 @@ export class GiteeRepos extends vscode.TreeItem {
     public htmlUrl: string,
     public sshUrl: string,
     public desc: string,
-    public readonly collapsibleState: vscode.TreeItemCollapsibleState,
+    public owner:string,
+    public repo:string,
+    public readonly collapsibleState: vscode.TreeItemCollapsibleState,   
     public readonly command?: vscode.Command,
     public category: string = "个人项目"
 

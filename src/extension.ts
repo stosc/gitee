@@ -17,7 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.commands.registerCommand("gitee.clone", (node: GiteeRepos) => giteeReposProvider.clone(node));
   vscode.commands.registerCommand("gitee.selectedRepos", (ssh: SshInfo) => { giteeReposProvider.setSelectedRepos(ssh); });
 
-  vscode.commands.registerCommand("gitee.cloneTo", () => { giteeReposProvider.cloneTo(); });
+  //vscode.commands.registerCommand("gitee.cloneTo", () => { giteeReposProvider.cloneTo(); });
   vscode.commands.registerCommand("gitee.setRemote", (node: GiteeRepos) => { giteeReposProvider.setRemote(node); });
 
   giteeReposProvider.loginGitee();

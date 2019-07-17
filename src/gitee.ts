@@ -46,33 +46,23 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
     this.outChannel.appendLine(cmd);    
     switch(os.type()){
       case "Windows_NT":
-          let cmds = `start ${this.getTerminal(cmd,workDir)} /c "cd /d "${workDir.fsPath}" & ${cmd}"`;
+          let cmds = `start cmd /c "cd /d "${workDir.fsPath}" & ${cmd}"`;
           shell.exec(cmds);
           break;
       case "Linux":
           
           break;
         case "Darwin":
-          return "";
+          let shpath=`${os.tmpdir()}/gitee_run.sh`;
+          shell.exec(`echo "#/bin/sh \n cd ${workDir.fsPath} \n ${cmd}" > ${shpath}`);
+          shell.exec(`chmod +x ${shpath}`,{silent:true});
+          shell.exec(`open -a Terminal ${shpath}`);
+          break;
     }
     
   }
 
-  private getTerminal(cmd:string,workDir:vscode.Uri): string {
-    let run = `${os.tmpdir()}\\gitee_run`;
-    switch(os.type()){
-      case "Windows_NT":
-         let c = shell.exec(`echo ${cmd} > "${run}.bat"`);
-          c = shell.exec(`start cmd /k "call ${run}.bat"`);
-          return "cmd";
-      case "Linux":
-        return "";
-        case "Darwin":
-          return "";
-    }
-    return "";
-    
-  }
+
 
   async setSSHKey() {
     try {
@@ -86,9 +76,9 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
         }
       };
       let dr = await axios.default.request(reqConfig);
-      vscode.window.showInformationMessage(`设置远程仓库成功！`);
+      vscode.window.showInformationMessage(`SSH Key 注册成功！`);
     } catch (err) {
-      console.log(err);
+      //console.log(err);
       vscode.window.showErrorMessage("设置远程仓库失败");
     }
   }
@@ -107,10 +97,10 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
 
   async getSSHKey(): Promise<{ name: string, key: string }> {
     try {
-      const filename = `${os.homedir}\\.ssh\\id_rsa`;
+      const filename = `${os.homedir}/.ssh/id_rsa`;
       const pubFile = `${filename}.pub`;
       if (!fs.existsSync(pubFile)) {
-        const c = this.execByShell(`echo 一路回车按到底 & ssh-keygen -t rsa -C "${this.giteeId}"`,vscode.Uri.parse(process.execPath));
+        const c = this.execByShell(`echo 一路回车按到底 & ssh-keygen -t rsa -C "${this.giteeId}"`,vscode.Uri.parse(os.homedir()));
         //const c = shell.exec(`start cmd /c "echo 一路回车按到底 & ssh-keygen -t rsa -C "${this.giteeId}" -f ${filename}"`);
         //const r = await this.execute(`start ${this.getTerminal()} /c "ssh-keygen -t rsa -C "${this.giteeId}" -f ${filename}"`, vscode.Uri.parse(process.execPath));
       }

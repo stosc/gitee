@@ -30,68 +30,89 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
         this.giteeStatusBarItem.text = `$(pulse) 正在clone代码库...`;
         this.giteeStatusBarItem.show();
         //此处clong项目并为项目添加ssh-key
-        const sshkey = await this.getSSHKey();
-        const p = await this.setSSHKeyToRepo(sshkey.name, sshkey.key, node.owner, node.repo);
+        //const sshkey = await this.getSSHKey();
+       // const p = await this.setSSHKeyToRepo(sshkey.name, sshkey.key, node.owner, node.repo);
         let uri = vscode.Uri.file(path);
-        let c = await this.execute(`git clone ${node.sshUrl}`, vscode.Uri.parse(path));
+        const c = this.execByShell(`git clone ${node.sshUrl}`,uri);
+       // let c = await this.execute(`git clone ${node.sshUrl}`, vscode.Uri.parse(path));
         await vscode.commands.executeCommand('vscode.openFolder', uri);
         this.giteeStatusBarItem.hide();
       }
     }
   }
 
-  async setSSHKeyToRepo(name: string, key: string, owner: string, repo: string) {
+  private execByShell(cmd:string,workDir:vscode.Uri){   
+    this.outChannel.show();
+    this.outChannel.appendLine(cmd);    
+    switch(os.type()){
+      case "Windows_NT":
+          let cmds = `start ${this.getTerminal(cmd,workDir)} /c "cd /d "${workDir.fsPath}" & ${cmd}"`;
+          shell.exec(cmds);
+          break;
+      case "Linux":
+          
+          break;
+        case "Darwin":
+          return "";
+    }
+    
+  }
+
+  private getTerminal(cmd:string,workDir:vscode.Uri): string {
+    let run = `${os.tmpdir()}\\gitee_run`;
+    switch(os.type()){
+      case "Windows_NT":
+         let c = shell.exec(`echo ${cmd} > "${run}.bat"`);
+          c = shell.exec(`start cmd /k "call ${run}.bat"`);
+          return "cmd";
+      case "Linux":
+        return "";
+        case "Darwin":
+          return "";
+    }
+    return "";
+    
+  }
+
+  async setSSHKey() {
     try {
+      const sshkey = await this.getSSHKey();
       let reqConfig: axios.AxiosRequestConfig = {
         method: "post",
-        url: `https://gitee.com/api/v5/repos/${owner}/${repo}/keys`,
-        data: `{"access_token":"${this.giteeToken}","owner":"${owner}","repo":"${repo}","key":"${key.trim()}","title":"${name}"}`,
+        url: `https://gitee.com/api/v5/user/keys`,
+        data: `{"access_token":"${this.giteeToken}","key":"${sshkey.key.trim()}","title":"${sshkey.name}"}`,
         headers: {
           "Content-Type": "application/json"
         }
       };
       let dr = await axios.default.request(reqConfig);
+      vscode.window.showInformationMessage(`设置远程仓库成功！`);
     } catch (err) {
       console.log(err);
+      vscode.window.showErrorMessage("设置远程仓库失败");
     }
   }
+
+  
 
   async  setRemote(node: GiteeRepos) {
     // 初始化选项列表清单
-    let items: vscode.QuickPickItem[] = [];
-    items.push({ label: "linux", description: "The Linux Platform", detail: "dddddd" });
-    items.push({ label: "macosx", description: "The MacOS Platform" });
-    items.push({ label: "windows", description: "The Windows Platform" });
-    items.push({ label: "android", description: "The Android Platform" });
-    items.push({ label: "iphoneos", description: "The iPhoneOS Platform" });
-    items.push({ label: "watchos", description: "The WatchOS Platform" });
-    items.push({ label: "mingw", description: "The MingW Platform" });
-    items.push({ label: "cross", description: "The Cross Platform" });
-
-    // 显示选项列表，提示用户选择
-    const chosen: vscode.QuickPickItem | undefined = await vscode.window.showQuickPick(items);
-    if (chosen) {
-
-      // 获取选择后的结果，然后更新状态栏按钮文本
-
-    }
+    let url = vscode.workspace.rootPath?vscode.workspace.rootPath:"";
+    let remoteUrl = node.sshUrl;
+    this.execByShell(`git remote add origin ${remoteUrl}`,vscode.Uri.parse(url));
 
   }
-  cloneTo() {
-    throw new Error("Method not implemented.");
-  }
-
-  private getTerminal(): string {
-    return "cmd";
-  }
+  
+  
 
   async getSSHKey(): Promise<{ name: string, key: string }> {
     try {
-      const filename = `${os.homedir}\\.ssh\\gitee_id_rsa`;
+      const filename = `${os.homedir}\\.ssh\\id_rsa`;
       const pubFile = `${filename}.pub`;
       if (!fs.existsSync(pubFile)) {
-        const c = shell.exec(`start cmd /c "echo 一路回车按到底 & ssh-keygen -t rsa -C "${this.giteeId}" -f ${filename}"`);
-        const r = await this.execute(`start ${this.getTerminal()} /c "ssh-keygen -t rsa -C "${this.giteeId}" -f ${filename}"`, vscode.Uri.parse(process.execPath));
+        const c = this.execByShell(`echo 一路回车按到底 & ssh-keygen -t rsa -C "${this.giteeId}"`,vscode.Uri.parse(process.execPath));
+        //const c = shell.exec(`start cmd /c "echo 一路回车按到底 & ssh-keygen -t rsa -C "${this.giteeId}" -f ${filename}"`);
+        //const r = await this.execute(`start ${this.getTerminal()} /c "ssh-keygen -t rsa -C "${this.giteeId}" -f ${filename}"`, vscode.Uri.parse(process.execPath));
       }
       var contentText = fs.readFileSync(`${filename}.pub`, 'utf-8');
       return Promise.resolve({ name: `${this.giteeId}_${os.hostname()}_vscode`, key: `${contentText}` });
@@ -320,6 +341,7 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
       this.context.globalState.update("gitee_id", this.giteeId);
       this.context.globalState.update("gitee_pwd", this.giteePwd);
       this.refresh();
+      this.setSSHKey();
 
     }).catch(err => {
 

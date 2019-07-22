@@ -5,11 +5,40 @@ import * as path from "path";
 import * as axios from "axios";
 import * as execa from 'execa';
 import * as shell from 'shelljs';
-import { removeListener } from "cluster";
+
 
 
 
 export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | ReposItem> {
+
+  giteeId?: string = '';
+  giteePwd?: string = '';
+  giteeToken: string = '';
+  giteeRefreshToker: string = '';
+  personalRepos: GiteeRepos[] = [];
+  enterpriseRepos: GiteeRepos[] = [];
+  organizationRepos: GiteeRepos[] = [];
+  context!: vscode.ExtensionContext;
+  enterpriseList: string[] = [];
+  organizationList: string[] = [];
+  outChannel: vscode.OutputChannel = vscode.window.createOutputChannel("gitee");
+  selectedRepos?: SshInfo = undefined;
+  persionIconPath = {
+    light: path.join(__filename, "..", "..", "resources", "light", "personal.png"),
+    dark: path.join(__filename, "..", "..", "resources", "dark", "personal.png")
+  };
+  entIconPath = {
+    light: path.join(__filename, "..", "..", "resources", "light", "ent.png"),
+    dark: path.join(__filename, "..", "..", "resources", "dark", "ent.png")
+  };
+  orgIconPath = {
+    light: path.join(__filename, "..", "..", "resources", "light", "group.png"),
+    dark: path.join(__filename, "..", "..", "resources", "dark", "group.png")
+  };
+
+  giteeStatusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1000);
+
+
   async clone(node: GiteeRepos) {
     let items: vscode.QuickPickItem[] = [];
     items.push({ label: "克隆到...", detail: `克隆项目${node.fullName}到你选择的文件夹中，并在新的vscode实例中打开。` });
@@ -43,11 +72,11 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
 
   private execByShell(cmd:string,workDir:vscode.Uri){   
     this.outChannel.show();
-    this.outChannel.appendLine(cmd);    
+    this.outChannel.appendLine(`> ${cmd}`);    
     switch(os.type()){
       case "Windows_NT":
           let cmds = `start cmd /c "cd /d "${workDir.fsPath}" & ${cmd}"`;
-          shell.exec(cmds);
+          const c = shell.exec(cmds);
           break;
       case "Linux":
           
@@ -63,7 +92,6 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
   }
 
 
-
   async setSSHKey() {
     try {
       const sshkey = await this.getSSHKey();
@@ -76,24 +104,33 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
         }
       };
       let dr = await axios.default.request(reqConfig);
-      vscode.window.showInformationMessage(`SSH Key 注册成功！`);
+      vscode.window.showInformationMessage(`gitee公钥注册成功！`);
     } catch (err) {
+      let p = err.response.data.message;
       //console.log(err);
-      vscode.window.showErrorMessage("设置远程仓库失败");
+      if(p === "当前公钥已被你添加到个人公钥中，你可通过该公钥直接对仓库进行读写操作"){
+        vscode.window.showInformationMessage(`gitee公钥注册成功！`);
+      }else{
+        vscode.window.showErrorMessage("gitee公钥注册失败！");
+      }
+      
     }
   }
-
   
 
   async  setRemote(node: GiteeRepos) {
     // 初始化选项列表清单
     let url = vscode.workspace.rootPath?vscode.workspace.rootPath:"";
-    let remoteUrl = node.sshUrl;
-    this.execByShell(`git remote add origin ${remoteUrl}`,vscode.Uri.parse(url));
-
+    let remoteUrl = node.sshUrl;    
+    const c =this.execute(`git remote add origin ${remoteUrl}`,vscode.Uri.parse(url));
+    c.then((a)=>{
+      vscode.window.showInformationMessage('远程仓库设置成功！');
+      this.outChannel.appendLine('远程仓库设置成功！');
+    }).catch(er=>{
+      vscode.window.showErrorMessage(`远程仓库设置失败：${er.all}`);
+      this.outChannel.appendLine(`远程仓库设置失败：${er.all}`);
+    });
   }
-  
-  
 
   async getSSHKey(): Promise<{ name: string, key: string }> {
     try {
@@ -101,8 +138,6 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
       const pubFile = `${filename}.pub`;
       if (!fs.existsSync(pubFile)) {
         const c = this.execByShell(`echo 一路回车按到底 & ssh-keygen -t rsa -C "${this.giteeId}"`,vscode.Uri.parse(os.homedir()));
-        //const c = shell.exec(`start cmd /c "echo 一路回车按到底 & ssh-keygen -t rsa -C "${this.giteeId}" -f ${filename}"`);
-        //const r = await this.execute(`start ${this.getTerminal()} /c "ssh-keygen -t rsa -C "${this.giteeId}" -f ${filename}"`, vscode.Uri.parse(process.execPath));
       }
       var contentText = fs.readFileSync(`${filename}.pub`, 'utf-8');
       return Promise.resolve({ name: `${this.giteeId}_${os.hostname()}_vscode`, key: `${contentText}` });
@@ -119,45 +154,13 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
     try {
       const filename = `${os.homedir}\\.ssh\\id_rsa_${Date.now().toString()}`;
       const r = await execa(`ssh-keygen -t rsa -N "${this.giteePwd}" -C "${this.giteeId}" -f ${filename}`);
-
       var contentText = fs.readFileSync(`${filename}.pub`, 'utf-8');
-
     } catch (error) {
 
     }
-
-    // vscode.window.showInformationMessage(r.msg);
   }
 
-  giteeId?: string = '';
-  giteePwd?: string = '';
-  giteeToken: string = '';
-  giteeRefreshToker: string = '';
-  personalRepos: GiteeRepos[] = [];
-  enterpriseRepos: GiteeRepos[] = [];
-  organizationRepos: GiteeRepos[] = [];
-  context!: vscode.ExtensionContext;
-  enterpriseList: string[] = [];
-  organizationList: string[] = [];
-  outChannel: vscode.OutputChannel = vscode.window.createOutputChannel("gitee");
-  selectedRepos?: SshInfo = undefined;
-  persionIconPath = {
-    light: path.join(__filename, "..", "..", "resources", "light", "personal.png"),
-    dark: path.join(__filename, "..", "..", "resources", "dark", "personal.png")
-  };
-  entIconPath = {
-    light: path.join(__filename, "..", "..", "resources", "light", "ent.png"),
-    dark: path.join(__filename, "..", "..", "resources", "dark", "ent.png")
-  };
-  orgIconPath = {
-    light: path.join(__filename, "..", "..", "resources", "light", "group.png"),
-    dark: path.join(__filename, "..", "..", "resources", "dark", "group.png")
-  };
-
-  giteeStatusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1000);
-
-
-
+  
   setSelectedRepos(ssh: SshInfo) {
     if (ssh.name === "") {
       this.selectedRepos = undefined;
@@ -230,7 +233,7 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
   private async execute(cmd: string, uri: vscode.Uri): Promise<{ stdout: string; stderr: string }> {
     const [git, ...args] = cmd.split(' ');
     this.outChannel.show();
-    this.outChannel.appendLine(`${git} ${args.join(' ')}`);
+    this.outChannel.appendLine(`> ${git} ${args.join(' ')}`);
     return execa(git, args, { cwd: uri.fsPath });
   }
 
@@ -282,16 +285,6 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
 
     panel.webview.html = content;
   }
-
-  // async setSSHKey() {
-  //   try {
-  //     const filename = `${os.homedir}\\.ssh\\id_rsa_${Date.now().toString()}`;
-  //     const r = await execa(`ssh-keygen -t rsa -N "${this.giteePwd}" -C "${this.giteeId}" -f ${filename}`);
-  //     const key = fs.readFileSync(`${filename}.pub`, 'utf-8');
-  //   } catch (error) {
-
-  //   }
-  // }
 
   async loginGitee() {
     this.giteeStatusBarItem.text = "$(pulse) 正在尝试登陆Gitee...";
@@ -416,28 +409,12 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
 
   getChildren(element?: GiteeRepos): Thenable<GiteeRepos[] | ReposItem[]> {
     if (this.giteeToken === '') {
-      vscode.window.showInformationMessage("请先登陆你的gitee账号");
+      //vscode.window.showInformationMessage("请先登陆你的gitee账号");
       return Promise.resolve([]);
     } else {
       return Promise.resolve(this.personalRepos.concat(this.enterpriseRepos).concat(this.organizationRepos));
     }
-    // if (element) {
-    //   switch (element.fullName) {
-    //     case "个人项目":
-    //       return Promise.resolve(this.personalRepos.concat(this.enterpriseRepos).concat(this.organizationRepos));
-    //     case "企业项目":
-    //       return Promise.resolve(this.enterpriseRepos);
-    //     case "组织项目":
-    //       return Promise.resolve(this.organizationRepos);
-    //   }
-    // } else {
-    //   return Promise.resolve([
-    //     new ReposItem("个人项目", vscode.TreeItemCollapsibleState.Collapsed, { command: 'gitee.selectedRepos', title: 'selected', arguments: [new SshInfo("")] }),
-    //     new ReposItem("企业项目", vscode.TreeItemCollapsibleState.Collapsed, { command: 'gitee.selectedRepos', title: 'selected', arguments: [new SshInfo("")] }),
-    //     new ReposItem("组织项目", vscode.TreeItemCollapsibleState.Collapsed, { command: 'gitee.selectedRepos', title: 'selected', arguments: [new SshInfo("")] })
-    //   ]);
-    // }
-    // return Promise.resolve([]);
+   
   }
 
 }
@@ -485,31 +462,14 @@ export class GiteeRepos extends vscode.TreeItem {
   }
 
   get tooltip(): string {
-    return this.desc;
+    return `${this.category}-${this.desc}`;
   }
 
   get description(): string {
-    return `${this.category}`;
+    return ``;
   }
 
-  iconPath = {
-    light: path.join(
-      __filename,
-      "..",
-      "..",
-      "resources",
-      "light",
-      "dependency.svg"
-    ),
-    dark: path.join(
-      __filename,
-      "..",
-      "..",
-      "resources",
-      "dark",
-      "dependency.svg"
-    )
-  };
+  iconPath:any;
 
   contextValue = "giteeRepos";
 }

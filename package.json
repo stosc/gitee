@@ -10,11 +10,13 @@
     "SCM Providers"
   ],
   "activationEvents": [
-    "onView:myGitee",
+    "onCommand:gitee.refresh",
+    "onView:myGiteeAll",
     "onCommand:extension.helloWorld"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    
     "viewsContainers": {
       "activitybar": [
         {
@@ -27,8 +29,15 @@
     "views": {
       "gitee-explorer": [
         {
-          "id": "myGitee",
-          "name": "码云"
+          "id": "myGiteeAll",
+          "name": "全部远端仓库"
+        },
+        {
+          "id": "currentGitee",
+          "name": "当前远端仓库"
+        },{
+          "id": "local",
+          "name": "本地仓库"
         }
       ]
     },
@@ -94,56 +103,56 @@
       "view/title": [
         {
           "command": "gitee.login",
-          "when": "view == myGitee",
+          "when": "view == myGiteeAll",
           "group": "navigation"
         },
         {
           "command": "gitee.refresh",
-          "when": "view == myGitee",
+          "when": "view == myGiteeAll",
           "group": "navigation"
         },
         {
           "command": "gitee.createRepos",
-          "when": "view == myGitee"
+          "when": "view == myGiteeAll"
         },
         {
           "command": "gitee.createEntRepos",
-          "when": "view == myGitee"
+          "when": "view == myGiteeAll"
         },
         {
           "command": "gitee.createOrgRepos",
-          "when": "view == myGitee"
+          "when": "view == myGiteeAll"
         },
         {
           "command": "gitee.clone",
-          "when": "view == myGitee"
+          "when": "view == myGiteeAll"
         },
         {
           "command": "gitee.cloneTo",
-          "when": "view == myGitee"
+          "when": "view == myGiteeAll"
         },
         {
           "command": "gitee.setRemote",
-          "when": "view == myGitee"
+          "when": "view == myGiteeAll"
         },
         {
           "command": "gitee.test",
-          "when": "view == myGitee"
+          "when": "view == myGiteeAll"
         },
         {
           "command": "gitee.test",
-          "when": "view == myGitee"
+          "when": "view == myGiteeAll"
         }
       ],
       "view/item/context": [
         {
           "command": "gitee.clone",
-          "when": "view == myGitee",
+          "when": "view == myGiteeAll",
           "group": "inline@1"
         },
         {
           "command": "gitee.setRemote",
-          "when": "view == myGitee",
+          "when": "view == myGiteeAll",
           "group": "inline@2"
         }
       ]

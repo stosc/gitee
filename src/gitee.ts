@@ -7,8 +7,6 @@ import * as execa from 'execa';
 import * as shell from 'shelljs';
 
 
-
-
 export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | ReposItem> {
 
   giteeId?: string = '';
@@ -70,7 +68,7 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
     }
   }
 
-  private execByShell(cmd:string,workDir:vscode.Uri){   
+  private execByShellOld(cmd:string,workDir:vscode.Uri){   
     this.outChannel.show();
     this.outChannel.appendLine(`> ${cmd}`);    
     switch(os.type()){
@@ -89,6 +87,23 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
           break;
     }
     
+  }
+
+  private execByShell(cmd:string,workDir:vscode.Uri){     
+    if (ensureTerminalExists()) {
+			selectTerminal().then(terminal => {
+				if (terminal) {
+					terminal.hide();
+				}else{
+          terminal = vscode.window.createTerminal(`Gitee Ext Terminal`);
+        }
+        terminal.sendText(cmd);
+        terminal.onDidWriteData(d=>{
+          vscode.window.showInformationMessage(d);
+        });
+        terminal.show();
+			});
+		}    
   }
 
 
@@ -137,7 +152,8 @@ export class GiteeReposProvider implements vscode.TreeDataProvider<GiteeRepos | 
       const filename = `${os.homedir}/.ssh/id_rsa`;
       const pubFile = `${filename}.pub`;
       if (!fs.existsSync(pubFile)) {
-        const c = this.execByShell(`echo 一路回车按到底 & ssh-keygen -t rsa -C "${this.giteeId}"`,vscode.Uri.parse(os.homedir()));
+        let c = this.execByShell(`echo '一路回车按到底' `,vscode.Uri.parse(os.homedir()));
+        c = this.execByShell(`ssh-keygen -t rsa -C "${this.giteeId}"`,vscode.Uri.parse(os.homedir()));
       }
       var contentText = fs.readFileSync(`${filename}.pub`, 'utf-8');
       return Promise.resolve({ name: `${this.giteeId}_${os.hostname()}_vscode`, key: `${contentText}` });
@@ -472,4 +488,29 @@ export class GiteeRepos extends vscode.TreeItem {
   iconPath:any;
 
   contextValue = "giteeRepos";
+}
+
+
+function selectTerminal(): Thenable<vscode.Terminal | undefined> {
+	interface TerminalQuickPickItem extends vscode.QuickPickItem {
+		terminal: vscode.Terminal;
+	}
+	const terminals = <vscode.Terminal[]>(<any>vscode.window).terminals;
+	const items: TerminalQuickPickItem[] = terminals.map(t => {
+		return {
+			label: `name: ${t.name}`,
+			terminal: t
+		};
+	});
+	return vscode.window.showQuickPick(items).then(item => {
+		return item ? item.terminal : undefined;
+	});
+}
+
+function ensureTerminalExists(): boolean {
+	if ((<any>vscode.window).terminals.length === 0) {
+		vscode.window.showErrorMessage('No active terminals');
+		return false;
+	}
+	return true;
 }
